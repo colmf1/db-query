@@ -12,8 +12,8 @@ def upload_csv(file, company_flag):
         return "Dataframe upload has failed"
     
     q = Q(df, model='gpt-4o-mini', company=company_flag) 
-    return df.head()  # Show a preview of the uploaded data
-
+    return df.head()  
+    
 def set_company_flag(checked):
     global company
     company = checked
