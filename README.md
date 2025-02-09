@@ -44,7 +44,7 @@ Welcome to **Ask Diallo**, a Hugging Face application that allows you to interac
 - **Visualization**: "Plot the monthly sales trend."
 
 ## Supported Models
-- **gpt-4o-mini**: A lightweight model for quick SQL query generation.
+- **gpt-4o-mini**: 
 
 ## Contributing
 
