@@ -1,0 +1,134 @@
+# Growth Calculation Examples
+### Prompt 1: "What is the {measure} growth of {category1} in the past {time_period}?"
+```sql
+WITH latest_date AS (
+    SELECT MAX(date) AS max_date FROM purchase
+),
+periods AS (
+    SELECT
+        max_date AS end_date,
+        max_date - INTERVAL {time_period} AS prior_end_date
+    FROM latest_date
+),
+{measure}_latest AS (
+    SELECT SUM({measure} * weight) AS total_{measure}
+    FROM purchase
+    CROSS JOIN periods
+    WHERE date BETWEEN (periods.end_date - INTERVAL {time_period}) AND periods.end_date
+    AND {category} = '{category1}'
+),
+ {measure}_prior AS (
+    SELECT SUM({measure} * weight) AS total_{measure}
+    FROM purchase
+    CROSS JOIN periods
+    WHERE date BETWEEN (periods.prior_end_date - INTERVAL {time_period}) AND periods.prior_end_date
+    AND {category} = '{category1}'
+)
+SELECT
+    (SELECT max_date FROM latest_date)::date AS latest_date,
+    {measure}_latest.total_{measure} AS {measure}_latest_{time_period},
+    {measure}_prior.total_{measure} AS {measure}_prior_{time_period},
+    CASE 
+        WHEN {measure}_prior.total_{measure} = 0 THEN NULL
+        ELSE (({measure}_latest.total_{measure} - {measure}_prior.total_{measure}) * 100.0 / {measure}_prior.total_{measure})
+    END AS growth_percentage
+FROM {measure}_latest, {measure}_prior;```
+
+### Prompt 2: "Plot the {time_period} rolling {measure} for {category1} 1 from {date1} to {date2}"
+```sql
+WITH RECURSIVE months AS (
+    SELECT (DATE '{date1}' - INTERVAL '{time_period+1}') AS month
+    UNION ALL
+    SELECT month + INTERVAL '1 month'
+    FROM months
+    WHERE month < DATE '{date2}'
+),
+monthly_{measure} AS (
+    SELECT 
+        DATE_TRUNC('month', date)::date AS month, 
+        SUM({measure} * weight) AS total_{measure}
+    FROM purchase
+    WHERE {category} = '{category1}'
+    GROUP BY DATE_TRUNC('month', date)
+),
+{measure}_with_months AS (
+    SELECT m.month, COALESCE(s.total_{measure}, 0) AS total_{measure}
+    FROM months m
+    LEFT JOIN monthly_{measure} s ON m.month = s.month
+),
+rolling_{measure} AS (
+    SELECT 
+        s1.month,
+        SUM(s2.total_{measure}) AS rolling_{measure}
+    FROM {measure}_with_months s1
+    JOIN {measure}_with_months s2 
+        ON s2.month <= s1.month 
+        AND s2.month > (s1.month - INTERVAL {time_period})
+    GROUP BY s1.month
+)
+SELECT month, rolling_{measure}
+FROM rolling_{measure}
+WHERE month BETWEEN DATE '{date1}' AND DATE '{date2}'
+ORDER BY month;```
+
+### Prompt 3: "What was the {measure} growth for {category1} in {year}?"
+```sql
+WITH periods AS (
+    SELECT
+        DATE '{year}-12-31' AS end_date_current,
+        (DATE '{year}-12-31' - INTERVAL '1 year') AS end_date_previous
+),
+{measure}_current AS (
+    SELECT SUM({measure} * weight) AS total_{measure}
+    FROM purchase
+    WHERE date >= (DATE '{year}-12-31' - INTERVAL '1 year')
+      AND date <= DATE '{year}-12-31'
+      AND {category} = '{category1}'
+),
+{measure}_previous AS (
+    SELECT SUM({measure} * weight) AS total_{measure}
+    FROM purchase
+    WHERE date >= (DATE '{year}-12-31' - INTERVAL '2 years')
+      AND date < (DATE '{year}-12-31' - INTERVAL '1 year')
+      AND {category} = '{category1}'
+)
+SELECT
+    periods.end_date_current AS latest_date,
+    c.total_{measure} AS {measure}_1y_current,
+    p.total_{measure} AS {measure}_1y_previous,
+    CASE 
+        WHEN p.total_{measure} = 0 THEN NULL
+        ELSE ((c.total_{measure} - p.total_{measure}) * 100.0 / p.total_{measure})
+    END AS {measure}_growth_percentage
+FROM periods
+JOIN spend_current c ON TRUE
+JOIN spend_previous p ON TRUE;
+
+### Prompt 4: "What are the top 5 fastest growing {categories}?"
+```sql
+WITH max_date AS (
+    SELECT MAX(date) AS max_date
+    FROM sales_data
+),
+period_totals AS (
+    SELECT 
+        {category},
+        SUM(CASE WHEN date BETWEEN (SELECT max_date - INTERVAL '52 weeks' FROM max_date) AND (SELECT max_date FROM max_date) 
+            THEN {measure} * weight ELSE 0 END) AS this_year_total,
+        SUM(CASE WHEN date BETWEEN (SELECT max_date - INTERVAL '104 weeks' FROM max_date) AND (SELECT max_date - INTERVAL '52 weeks' FROM max_date) 
+            THEN {measure} * weight ELSE 0 END) AS last_year_total
+    FROM sales_data
+    GROUP BY {category} 
+)
+SELECT 
+    {category},
+    this_year_total,
+    last_year_total,
+    CASE WHEN last_year_total = 0 THEN NULL
+         ELSE ((this_year_total - last_year_total) / last_year_total * 100) 
+    END AS growth
+FROM period_totals
+WHERE this_year_total > 0 AND last_year_total > 0
+ORDER BY growth DESC
+NULLS LAST
+LIMIT 5;```

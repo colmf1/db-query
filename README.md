@@ -1,65 +1,104 @@
----
-license: mit
-sdk: gradio
-colorFrom: yellow
-colorTo: gray
-pinned: true
-short_description: Use natural language to extract insights from your data
-sdk_version: 5.15.0
----
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+# Ask Q - Data Query Assistant
 
-# Ask Diallo
-
-Welcome to **Ask Diallo**, a Hugging Face application that allows you to interact with your CSV data using natural language. This application leverages **gpt-4o-mini** to generate SQL queries, execute them on your data, and provide insightful answers. Additionally, it can generate visualizations using **Matplotlib** when necessary.
+## Overview
+Ask Q is a Streamlit-based application that allows users to upload purchase level CSV data and interact with it through natural language queries. The application leverages OpenAI's language models to translate user questions into SQL queries, execute them against the data, and present the results with optional visualizations.
 
 ## Features
+- **Natural Language Data Querying**: Ask questions about your data in plain English
+- **Data Visualization**: Automatically generates relevant charts based on your queries
+- **CSV Data Support**: Upload your own CSV files or use sample data
+- **Chat Interface**: Intuitive chat-based UI for asking sequential questions
+- **SQL Generation**: Translates natural language to SQL using GPT-4 models
+- **Interactive Results**: View both text analysis and visual representations of your data
+- **Specialised to Purchase level data**: The method has been refined to work with certain data
 
-- **Natural Language Interaction**: Chat with your data in plain English.
-- **SQL Query Generation**: Automatically generates SQL queries based on your questions.
-- **Data Visualization**: Produces Matplotlib plots to visualize data insights.
-- **CSV Support**: Upload your CSV file and start querying immediately.
+## Requirements
+- Python 3.7+
+- OpenAI API key
+- Required Python packages (see Installation)
+
+## Installation
+
+### Local Setup
+1. Clone the repository:
+```bash
+git clone https://github.com/colmf1/df-query.git
+cd ask-q
+```
+
+2. Install the required dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Set up your environment variables:
+Create a `.env` file in the root directory with the following:
+```
+OPENAI_API_KEY=your_openai_api_key
+PASSCODE=your_chosen_passcode
+```
+
+4. (Optional) Prepare a dummy dataset:
+Place a file named `export.csv` in the project root to use as sample data.
+
+### GitHub Codespaces
+This application is designed to work with GitHub Codespaces:
+
+1. Open the repository in GitHub Codespaces
+2. The development environment will be automatically configured
+3. Create a `.env` file with your OpenAI API key and passcode
+4. Start the application with `streamlit run app.py`
+
+## Usage
+
+1. Start the application:
+```bash
+streamlit run app.py
+```
+
+2. In the sidebar:
+   - Enter your passcode 
+   - Choose to use dummy data or upload your own CSV
+   - Click "Upload and Initialize" or "Load Dummy Data"
+
+3. Ask questions in the chat input:
+   - Example: "Which brand has seen the highest growth in 2024?"
+   - Example: "Show me the top 5 products by volume"
+   - Example: "What is the spend growth of brand 3 in the past year?"
+
+4. View results in the chat interface, including any automatically generated visualizations
 
 ## How It Works
-1. **Upload Your CSV**: Start by uploading a CSV file containing your data.
-2. **Ask Questions**: Type your question in natural language (e.g., "What is the average sales per region?").
-3. **SQL Query Generation**: The application uses **gpt-4o-mini** to generate an appropriate SQL query.
-4. **Query Execution**: The generated SQL query is executed on your CSV data.
-5. **Get Answers**: The application provides an answer based on the query results.
-6. **Visualizations**: If applicable, the app generates a Matplotlib plot to visualize the data.
 
-## Getting Started
+The application follows these steps to process your queries:
 
-### Prerequisites
+1. **Data Loading**: CSV is loaded into a PostgreSQL database
+2. **Query Understanding**: Your question is analyzed using LangChain and OpenAI models
+3. **SQL Generation**: An appropriate SQL query is generated to answer your question
+4. **Query Execution**: The SQL is run against your data
+5. **Response Generation**: Results are analyzed and formatted into a human-readable response
+6. **Visualization**: If appropriate, Python code is generated to create relevant charts
 
-- Python 3.8 or higher
-- Hugging Face account
-- Required Python packages (listed in `requirements.txt`)
+## Project Structure
+- `app.py`: The main Streamlit application
+- `DBQ.py`: The core query processing logic and model interaction
+- `sql_docs/`: Contains reference documentation for SQL query generation
+- `export.csv`: Sample data file (if using dummy data option)
+- `.env`: Environment variables (API keys, passcode)
 
-## Example Queries
+## Codespaces Configuration
+When using GitHub Codespaces:
+- The application will be accessible via Codespaces' port forwarding
+- Your environment variables need to be configured in Codespaces secrets or set manually
+- Data uploaded to the application will be temporary unless specifically saved to persistent storage
 
-- **Basic Query**: "What is the total sales for each region?"
-- **Aggregation**: "What is the average age of customers?"
-- **Filtering**: "Show me all transactions above $500."
-- **Visualization**: "Plot the monthly sales trend."
+## Limitations
+- The accuracy of responses depends on the quality of the data and clarity of questions
+- Large datasets may take longer to process
+- Complex queries might require more specific phrasing
 
-## Supported Models
-- **gpt-4o-mini**: 
-
-## Contributing
-
-We welcome contributions! If you have any ideas, suggestions, or bug reports, please open an issue or submit a pull request.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- **Hugging Face** for providing the infrastructure and models.
-- **Matplotlib** for data visualization.
-- **Pandas** for data manipulation.
-- **Gradio** for chatbot application.
-
-## Future Improvements
-- Implement chat history, so users can ask questions about previous answers
+## Troubleshooting
+- If visualizations aren't displaying, check that your question is specific enough for data visualization
+- If receiving error messages, verify your OpenAI API key is valid and has sufficient quota
+- For "Unable to answer" responses, try rephrasing your question to be more specific
+- In Codespaces, ensure port forwarding is enabled for Streamlit's default port (typically 8501)

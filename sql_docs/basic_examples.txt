@@ -1,0 +1,45 @@
+# Example Prompts and Calculations for basic aggregations
+## Basic Measure aggregations
+### Prompt: "Compare the total {measure} between {category1} and {category2} over the past {time_period}."
+```sql
+SELECT 
+    {category},
+    DATEDIFF(MAX(date), DATE_SUB(MAX(date), INTERVAL {time_period})) / 7 AS Interval_Weeks, 
+    SUM({measure} * gweight) AS total_{measure}
+FROM purchase
+WHERE {category} IN ('{category1}', '{category2}')
+  AND date >= (SELECT DATE_SUB(MAX(date), INTERVAL {time_period}) FROM purchase)
+GROUP BY {category};```
+
+### Prompt: "What are the highest {categories} in terms of {measure} over the past {time_period}?
+```sql
+SELECT 
+    {category},
+    DATEDIFF(MAX(date), DATE_SUB(MAX(date), INTERVAL {time_period})) / 7 AS Interval_Weeks, 
+    SUM({measure} * gweight) AS total_{measure}
+  FROM purchase
+  GROUP BY {category}
+  WHERE date >= (SELECT DATE_SUB(MAX(date), INTERVAL {time_period}) FROM purchase)
+  ORDER BY total_{measure} DESC
+  LIMIT 5;```
+
+### Prompt: "Compare the total {measure} between {category1} and {category2} since {date}."
+```sql
+SELECT 
+    {category},
+    SUM({measure} * gweight) AS total_{measure}
+  FROM purchase
+  WHERE {category} IN ('{category1}', '{category2}')
+  AND date >= DATE '{date}'
+  GROUP BY {category};```
+
+### Prompt: "Which {category} has the highest {measure}, {category1},{category2} or {category3} over the past {time_period}?
+```sql
+SELECT 
+    {category},
+    SUM({measure} * gweight) AS total_{measure}
+  FROM purchase
+  WHERE {category} IN ({category1},{category2},{category3})
+  AND date >= (SELECT DATE_SUB(MAX(date), INTERVAL {time_period}) FROM purchase)
+  GROUP BY {category}
+  ORDER BY total_{measure} DESC```
